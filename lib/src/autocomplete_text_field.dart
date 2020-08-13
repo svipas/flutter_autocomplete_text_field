@@ -8,6 +8,7 @@ class AutocompleteTextField extends StatefulWidget {
   final Function(String value) onSubmitted;
   final Function(String value) onEditingComplete;
   final Function(String value) itemBuilder;
+  final Function(bool hasFocus) onFocusChange;
   final FocusNode focusNode;
   final TextEditingController controller;
   final bool closeKeyboardOnSuggestionPress;
@@ -15,6 +16,7 @@ class AutocompleteTextField extends StatefulWidget {
   final bool resetScrollPositionOnTextChange;
   final bool showSuggestionsOnSelection;
   final bool onTapShowSuggestions;
+  final bool closeSuggestionsOnFocusChange;
   final Function onTap;
   final String initialValue;
   final BoxConstraints constraints;
@@ -40,6 +42,7 @@ class AutocompleteTextField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.onEditingComplete,
+    this.onFocusChange,
     this.focusNode,
     this.controller,
     this.closeKeyboardOnSuggestionPress = false,
@@ -47,6 +50,7 @@ class AutocompleteTextField extends StatefulWidget {
     this.onTapShowSuggestions = true,
     this.resetScrollPositionOnTextChange = false,
     this.showSuggestionsOnSelection = true,
+    this.closeSuggestionsOnFocusChange = true,
     this.onTap,
     this.initialValue,
     this.constraints,
@@ -150,6 +154,16 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
         }
       });
     }
+
+    _textField.focusNode.addListener(() {
+      final hasFocus = _textField.focusNode.hasFocus;
+      if (widget.onFocusChange != null) {
+        widget.onFocusChange(hasFocus);
+      }
+      if (!hasFocus && widget.closeSuggestionsOnFocusChange) {
+        _close(resetScrollPosition: true);
+      }
+    });
 
     if (widget.initialValue != null) {
       _currentText = widget.initialValue;
