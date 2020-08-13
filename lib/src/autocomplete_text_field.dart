@@ -30,6 +30,7 @@ class AutocompleteTextField extends StatefulWidget {
   final TextInputAction textInputAction;
   final TextStyle style;
   final String separator;
+  final bool enabled;
 
   AutocompleteTextField({
     Key key,
@@ -61,6 +62,7 @@ class AutocompleteTextField extends StatefulWidget {
     this.textInputAction,
     this.style,
     this.separator,
+    this.enabled,
   }) : super(key: key);
 
   @override
@@ -95,6 +97,7 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
     );
 
     _textField = TextField(
+      enabled: widget.enabled,
       style: widget.style,
       textInputAction: widget.textInputAction,
       maxLength: widget.maxLength,
@@ -188,14 +191,7 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final textFieldSize = (context.findRenderObject() as RenderBox).size;
-      if (_overlayWidth != textFieldSize.width) {
-        _overlayWidth = textFieldSize.width;
-      }
-      if (_overlayOffset.dy != textFieldSize.height) {
-        _overlayOffset = Offset(0, textFieldSize.height);
-      }
-      _overlayEntry.markNeedsBuild();
+      _updateOverlaySize(rebuild: true);
     });
   }
 
@@ -217,14 +213,7 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
 
   void _updateOverlay([String query]) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final textFieldSize = (context.findRenderObject() as RenderBox).size;
-
-      if (_overlayWidth == null || _overlayWidth != textFieldSize.width) {
-        _overlayWidth = textFieldSize.width;
-      }
-      if (_overlayOffset?.dy != textFieldSize.height) {
-        _overlayOffset = Offset(0, textFieldSize.height);
-      }
+      _updateOverlaySize();
 
       if (_overlayEntry == null) {
         _overlayEntry = OverlayEntry(
@@ -457,10 +446,6 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
   }
 
   void _onSuggestionTap(String suggestion) {
-    if (widget.onChanged != null) {
-      widget.onChanged(_currentText);
-    }
-
     final selection = _textField.controller.selection;
     final autocompleteText = _parseAutocompleteSuggestionText(
       text: _currentText,
@@ -480,6 +465,14 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
       selection: newSelection,
     );
 
+    if (widget.onChanged != null) {
+      widget.onChanged(_currentText);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateOverlaySize(rebuild: true);
+    });
+
     _close(
       resetScrollPosition: widget.resetScrollPositionOnSuggestionPress,
       closeKeyboard: widget.closeKeyboardOnSuggestionPress,
@@ -487,7 +480,9 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
   }
 
   TextSelection _calculateTextSelection(
-      TextSelection selection, _AutocompleteText autocompleteText) {
+    TextSelection selection,
+    _AutocompleteText autocompleteText,
+  ) {
     final suggestionLength = autocompleteText.suggestion.length;
 
     // Selected text.
@@ -513,6 +508,22 @@ class AutocompleteTextFieldState extends State<AutocompleteTextField>
     }
 
     return TextSelection.collapsed(offset: offset);
+  }
+
+  void _updateOverlaySize({bool rebuild = false}) {
+    final textFieldSize = (context.findRenderObject() as RenderBox).size;
+
+    if (_overlayWidth == null || _overlayWidth != textFieldSize.width) {
+      _overlayWidth = textFieldSize.width;
+    }
+
+    if (_overlayOffset?.dy != textFieldSize.height) {
+      _overlayOffset = Offset(0, textFieldSize.height);
+    }
+
+    if (rebuild) {
+      _overlayEntry.markNeedsBuild();
+    }
   }
 }
 
